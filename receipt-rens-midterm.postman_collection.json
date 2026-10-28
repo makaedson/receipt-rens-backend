@@ -1,0 +1,202 @@
+{
+  "info": {
+    "_postman_id": "bc6641e5-dbe8-4239-8c42-0c99d8d8a112",
+    "name": "ReceiptRens Mid-Term Requirements",
+    "description": "ReceiptRens assignment requests. Create the required records first, then set the UUID variables. The API intentionally rejects receipts dated before today.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "shopperId", "value": "" },
+    { "key": "storeId", "value": "" },
+    { "key": "secondStoreId", "value": "" },
+    { "key": "unitId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "receiptId", "value": "" },
+    { "key": "approvedReceiptId", "value": "" },
+    { "key": "expenseEntryId", "value": "" },
+    { "key": "username", "value": "edson.m" }
+  ],
+  "item": [
+    {
+      "name": "A2 - Save expense category",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Groceries\"\n}" },
+        "url": "{{baseUrl}}/api/expense-categories/save"
+      }
+    },
+    {
+      "name": "B1 - Shoppers by city",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/shoppers/by-city?city=kigali" }
+    },
+    {
+      "name": "B2 - Receipts by status",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/receipts/by-status?status=UPLOADED" }
+    },
+    {
+      "name": "B3 - Receipts between dates",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/receipts/between?start=2026-10-01&end=2026-10-31" }
+    },
+    {
+      "name": "C1 - Stores by category",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/stores/by-expense-category?name=groc" }
+    },
+    {
+      "name": "C2 - Free shop units",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/shop-units/free" }
+    },
+    {
+      "name": "C3 - Unused expense categories",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/expense-categories/unused" }
+    },
+    {
+      "name": "C4 - Shoppers of store",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/shoppers/of-store/{{storeId}}" }
+    },
+    {
+      "name": "D1 - Save receipt today (success)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.variables.set('today', new Date().toISOString().slice(0, 10));"]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Receipt is created', function () { pm.response.to.have.status(201); });"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"receiptDate\": \"{{today}}\",\n  \"status\": \"APPROVED\",\n  \"totalAmount\": 12500,\n  \"shopper\": { \"id\": \"{{shopperId}}\" },\n  \"store\": { \"id\": \"{{storeId}}\" }\n}"
+        },
+        "url": "{{baseUrl}}/api/receipts/save"
+      }
+    },
+    {
+      "name": "D1 - Reject past receipt date (400)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Past date is rejected', function () { pm.response.to.have.status(400); });"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"receiptDate\": \"2026-10-20\",\n  \"totalAmount\": 5000,\n  \"shopper\": { \"id\": \"{{shopperId}}\" },\n  \"store\": { \"id\": \"{{storeId}}\" }\n}"
+        },
+        "url": "{{baseUrl}}/api/receipts/save"
+      }
+    },
+    {
+      "name": "D2 - Update receipt status",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Status transition succeeds', function () { pm.response.to.have.status(200); });"]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/receipts/{{receiptId}}/status?status=SCANNED"
+      }
+    },
+    {
+      "name": "D2 - Reject invalid status transition (400)",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/receipts/{{receiptId}}/status?status=UPLOADED"
+      }
+    },
+    {
+      "name": "D3 - Add category to store",
+      "request": {
+        "method": "PUT",
+        "url": "{{baseUrl}}/api/stores/{{storeId}}/expense-categories/{{categoryId}}"
+      }
+    },
+    {
+      "name": "D4 - Move store to shop unit",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/stores/{{storeId}}/shop-unit?unitNumber=4"
+      }
+    },
+    {
+      "name": "E1 - Save expense entry",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": ["pm.test('Entry is created', function () { pm.response.to.have.status(201); });"]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itemName\": \"Rice 5kg\",\n  \"note\": \"Monthly groceries\",\n  \"amount\": 7500\n}"
+        },
+        "url": "{{baseUrl}}/api/expense-entries/save?receiptId={{approvedReceiptId}}"
+      }
+    },
+    {
+      "name": "E1 - Reject entry for non-approved receipt (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"itemName\": \"Rice 5kg\",\n  \"note\": \"Not approved receipt\",\n  \"amount\": 7500\n}"
+        },
+        "url": "{{baseUrl}}/api/expense-entries/save?receiptId={{receiptId}}"
+      }
+    },
+    {
+      "name": "E2 - Shopper expense history",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/expense-entries/shopper/{{username}}" }
+    },
+    {
+      "name": "E3 - Delete expense entry",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/expense-entries/delete/{{expenseEntryId}}" }
+    },
+    {
+      "name": "F1 - Receipt counts by status",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/receipts/stats/by-status" }
+    },
+    {
+      "name": "F2 - Cancel receipts for store on date",
+      "request": { "method": "PATCH", "url": "{{baseUrl}}/api/receipts/cancel-day?storeId={{storeId}}&date=2026-10-20" }
+    },
+    {
+      "name": "Bonus - Dashboard summary",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/dashboard/summary" }
+    },
+    {
+      "name": "Bonus - Paged receipts",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/receipts/page?page=0&size=5&sort=receiptDate,desc" }
+    }
+  ]
+}
